@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
@@ -7,158 +7,142 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>Lab - UX Research</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+      /* 1. DESIGN TOKENS (管理中心) */
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                bg: "#0D0D0D",
+                surface: "#1A1A1A",
+                accent: "#BBF7D0",
+              },
+            },
+            spacing: {
+              "safe-bottom": "env(safe-area-inset-bottom)",
+            },
+          },
+        },
+      };
+    </script>
+
     <style>
-      :root {
-        --bg-color: rgba(13, 13, 13, 0.9);
-        --accent-color: #bbf7d0; /* 你專屬的實驗室螢光綠 */
-        --text-color: #e5e5e5;
-        --secondary-text: #888;
-        --spacing: 16px;
+      /* 2. GLOBAL OVERRIDES */
+      #editor::-webkit-scrollbar {
+        display: none;
       }
-
-      * {
-        box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
-      }
-
-      body {
-        margin: 0;
-        padding: 0;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-          Arial, sans-serif;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-
-      /* 標題列：極簡設計感 */
-      header {
-        padding: 12px var(--spacing);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid #333;
-      }
-
-      header h1 {
-        font-size: 14px;
-        font-weight: 600;
-        letter-spacing: 2px;
-        margin: 0;
-        color: var(--accent-color);
-        text-transform: uppercase;
-      }
-
-      /* 筆記區域：重點在於大字體與無邊框 */
-      #editor {
-        flex: 1;
-        width: 100%;
-        padding: var(--spacing);
-        background: transparent;
-        border: none;
-        color: var(--text-color);
-        font-size: 16px;
-        line-height: 1.6;
-        resize: none;
-        outline: none;
-        font-family: inherit;
-      }
-
-      /* 底部工具欄 */
-      footer {
-        padding: 8px var(--spacing);
-        background: rgba(26, 26, 26, 0.5);
-        display: flex;
-        gap: 8px;
-        border-top: 1px solid #333;
-      }
-
-      button {
-        background: #222;
-        border: 1px solid #444;
-        color: var(--text-color);
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-
-      button:active {
-        background: var(--accent-color);
-        color: #000;
-      }
-
-      .status {
-        font-size: 10px;
-        color: var(--secondary-text);
-        margin-left: auto;
-        align-self: center;
+      .active-press:active {
+        transform: scale(0.98);
+        opacity: 0.8;
       }
     </style>
   </head>
-  <body>
-    <header>
-      <h1>Lab.</h1>
-      <div class="status" id="save-status">Synced</div>
+
+  <body
+    class="bg-brand-bg text-gray-200 h-screen flex flex-col overflow-hidden"
+  >
+    <header
+      class="flex justify-between items-center px-4 py-3 border-b border-white/5 flex-none"
+    >
+      <h1
+        class="text-[10px] font-black tracking-widest text-brand-accent uppercase"
+      >
+        Lab Phase 01
+      </h1>
+      <div
+        id="status"
+        class="text-[9px] text-gray-500 font-mono tracking-tighter"
+      >
+        IDLE
+      </div>
     </header>
 
-    <textarea id="editor" placeholder="在此記錄第一手 UX 觀察..."></textarea>
+    <main class="flex-1 relative">
+      <textarea
+        id="editor"
+        class="w-full h-full bg-transparent p-5 text-[16px] leading-relaxed outline-none resize-none placeholder:text-gray-800"
+        placeholder="記錄觀察..."
+      ></textarea>
+    </main>
 
-    <footer>
-      <button onclick="insertTime()">+ Time</button>
-      <button onclick="insertDivider()">———</button>
-      <button onclick="clearAll()" style="color: #ff6b6b">Clear</button>
+    <footer
+      class="p-3 bg-brand-surface/30 border-t border-white/5 flex gap-2 flex-none pb-safe-bottom"
+    >
+      <button onclick="handleAction('time')" class="btn-primary flex-1">
+        Time
+      </button>
+      <button onclick="handleAction('line')" class="btn-primary flex-1">
+        Line
+      </button>
+      <button
+        onclick="handleAction('clear')"
+        class="btn-secondary px-4 text-red-900/60"
+      >
+        Clear
+      </button>
     </footer>
 
     <script>
       const editor = document.getElementById("editor");
-      const status = document.getElementById("save-status");
+      const statusIcon = document.getElementById("status");
 
-      // 載入舊有的實驗數據
-      editor.value = localStorage.getItem("lab_notes") || "";
+      // 初始化：讀取緩存
+      editor.value = localStorage.getItem("lab_v1") || "";
 
-      // 自動存檔：每打一個字都存入 localStorage
-      editor.addEventListener("input", () => {
-        localStorage.setItem("lab_notes", editor.value);
-        status.innerText = "Saving...";
-        setTimeout(() => (status.innerText = "Synced"), 500);
-      });
+      // 核心邏輯：自動存檔
+      const saveContent = () => {
+        localStorage.setItem("lab_v1", editor.value);
+        statusIcon.innerText = "SAVED";
+        statusIcon.classList.add("text-brand-accent");
+        setTimeout(() => {
+          statusIcon.innerText = "SYNCED";
+          statusIcon.classList.remove("text-brand-accent");
+        }, 800);
+      };
 
-      // 插入當下時間（你的 UX Log 習慣）
-      function insertTime() {
-        const now = new Date();
-        const timeStr = `\n[${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}] `;
-        editor.setRangeText(
-          timeStr,
-          editor.selectionStart,
-          editor.selectionEnd,
-          "end",
-        );
-        editor.focus();
-        localStorage.setItem("lab_notes", editor.value);
-      }
+      // 統一處理按鈕動作 (這就是你要求的延伸性：要加新功能只需在此擴充 case)
+      function handleAction(type) {
+        const start = editor.selectionStart;
+        let insertStr = "";
 
-      function insertDivider() {
-        editor.setRangeText(
-          "\n---\n",
-          editor.selectionStart,
-          editor.selectionEnd,
-          "end",
-        );
-        editor.focus();
-      }
+        switch (type) {
+          case "time":
+            const now = new Date();
+            insertStr = `\n[${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}] `;
+            break;
+          case "line":
+            insertStr = "\n---\n";
+            break;
+          case "clear":
+            if (confirm("Clear Lab?")) {
+              editor.value = "";
+              saveContent();
+              return;
+            }
+            break;
+        }
 
-      function clearAll() {
-        if (confirm("確定要清空實驗室紀錄嗎？")) {
-          editor.value = "";
-          localStorage.setItem("lab_notes", "");
+        if (insertStr) {
+          editor.setRangeText(insertStr, start, editor.selectionEnd, "end");
+          editor.focus();
+          saveContent();
         }
       }
+
+      editor.addEventListener("input", saveContent);
     </script>
+
+    <style shadow>
+      /* Utility Classes for cleaner HTML */
+      .btn-primary {
+        @apply py-3 bg-white/5 border border-white/5 rounded-xl text-[11px] font-bold uppercase tracking-wider active-press;
+      }
+      .btn-secondary {
+        @apply py-3 bg-transparent border border-white/5 rounded-xl text-[11px] font-bold uppercase tracking-wider active-press;
+      }
+    </style>
   </body>
 </html>
