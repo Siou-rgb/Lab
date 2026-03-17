@@ -13,7 +13,7 @@
         theme: {
           extend: {
             colors: {
-              labBg: "#0D0D0D",
+              labBg: "#1C1616", // 依照截圖調整為深紅灰底色
               labAccent: "#BBF7D0",
               labRed: "#FF6B6B",
             },
@@ -22,87 +22,86 @@
       };
     </script>
     <style>
-      /* 確保輸入時不會被縮放 */
       textarea {
         font-size: 16px !important;
       }
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
-
-      /* 讓內容區自動填滿剩餘高度 */
-      .viewport-height {
-        height: calc(100vh - 100px);
+      /* 讓內容區填滿剩餘高度，確保不會超出螢幕 */
+      body,
+      html {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
       }
     </style>
   </head>
-  <body class="bg-labBg text-gray-200 overflow-hidden flex flex-col h-screen">
-    <header class="flex-none bg-labBg z-30">
-      <div
-        class="flex justify-between items-center px-4 py-3 border-b border-white/5"
+  <body class="bg-labBg text-gray-400 flex flex-col h-full">
+    <header class="flex justify-between items-center px-4 pt-4 pb-2 flex-none">
+      <h1 class="text-lg font-medium tracking-tight text-labAccent">LAB.</h1>
+      <button
+        onclick="toggleView()"
+        class="text-sm text-gray-500"
+        id="view-btn"
       >
-        <h1 class="text-xs font-black tracking-widest text-labAccent uppercase">
-          LabX.
-        </h1>
-        <button
-          onclick="toggleView()"
-          class="text-[10px] text-gray-500 uppercase font-bold"
-          id="view-btn"
-        >
-          Past
-        </button>
-      </div>
-
-      <div
-        class="flex items-center justify-between px-2 py-2 bg-white/5 border-b border-white/5 gap-1"
-      >
-        <div class="flex">
-          <button
-            onclick="handleAction('time')"
-            class="px-3 py-2 text-[11px] text-gray-400 active:text-labAccent font-mono"
-          >
-            time
-          </button>
-          <button
-            onclick="handleAction('line')"
-            class="px-3 py-2 text-[11px] text-gray-400 active:text-labAccent font-mono"
-          >
-            line
-          </button>
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            onclick="handleAction('save')"
-            class="bg-labAccent text-black text-[10px] font-black px-4 py-2 rounded-md active:opacity-70"
-          >
-            SAVE LOG
-          </button>
-          <button
-            onclick="handleAction('clear')"
-            class="px-3 py-2 text-[10px] text-labRed/50 uppercase font-bold"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
+        past
+      </button>
     </header>
 
-    <main class="flex-1 overflow-y-auto no-scrollbar relative">
+    <nav class="px-4 py-1 flex-none">
+      <div
+        class="flex items-center justify-between border border-white/10 rounded-full px-1 py-1 bg-black/20"
+      >
+        <button
+          onclick="handleAction('time')"
+          class="flex-1 py-1.5 text-sm hover:text-white active:opacity-50 transition-all"
+        >
+          time
+        </button>
+        <div class="w-[1px] h-4 bg-white/10"></div>
+        <button
+          onclick="handleAction('line')"
+          class="flex-1 py-1.5 text-sm hover:text-white active:opacity-50 transition-all"
+        >
+          line
+        </button>
+        <div class="w-[1px] h-4 bg-white/10"></div>
+        <button
+          onclick="handleAction('save')"
+          class="flex-[1.5] py-1.5 text-sm hover:text-white active:opacity-50 transition-all text-gray-300"
+        >
+          save log
+        </button>
+        <div class="w-[1px] h-4 bg-white/10"></div>
+        <button
+          onclick="handleAction('clear')"
+          class="flex-1 py-1.5 text-sm text-labRed/70 hover:text-labRed active:opacity-50 transition-all"
+        >
+          clear
+        </button>
+      </div>
+    </nav>
+
+    <main class="flex-1 overflow-hidden relative">
       <div id="editor-view" class="h-full">
         <textarea
           id="editor"
-          class="w-full h-full bg-transparent p-5 leading-relaxed outline-none resize-none placeholder:text-gray-800"
-          placeholder="Start recording..."
+          class="w-full h-full bg-transparent p-5 text-gray-600 leading-relaxed outline-none resize-none placeholder:text-gray-800"
+          placeholder="Record"
         ></textarea>
       </div>
 
-      <div id="history-view" class="hidden p-5">
+      <div
+        id="history-view"
+        class="hidden h-full overflow-y-auto p-5 no-scrollbar"
+      >
         <h2
-          class="text-[10px] text-gray-600 mb-6 uppercase tracking-widest font-bold"
+          class="text-[10px] text-gray-600 mb-6 uppercase tracking-widest font-bold border-b border-white/5 pb-2"
         >
-          History Archive
+          Archive
         </h2>
-        <div id="log-list" class="space-y-6"></div>
+        <div id="log-list" class="space-y-6 pb-20"></div>
       </div>
     </main>
 
@@ -113,27 +112,26 @@
       const viewBtn = document.getElementById("view-btn");
       const logList = document.getElementById("log-list");
 
-      // 使用不同的 Key 以免資料衝突
-      let logs = JSON.parse(localStorage.getItem("lab_logs_v3") || "[]");
+      let logs = JSON.parse(localStorage.getItem("lab_logs_final") || "[]");
 
       function toggleView() {
         const isHistory = editorView.classList.contains("hidden");
         if (isHistory) {
           editorView.classList.remove("hidden");
           historyView.classList.add("hidden");
-          viewBtn.innerText = "Past";
+          viewBtn.innerText = "past";
         } else {
           renderLogs();
           editorView.classList.add("hidden");
           historyView.classList.remove("hidden");
-          viewBtn.innerText = "Back";
+          viewBtn.innerText = "back";
         }
       }
 
       function renderLogs() {
         logList.innerHTML =
           logs.length === 0
-            ? '<div class="text-gray-800 text-xs text-center mt-10">Archive is empty.</div>'
+            ? '<div class="text-gray-800 text-xs text-center mt-10">Empty</div>'
             : "";
         logs
           .slice()
@@ -159,11 +157,11 @@
             date: now.toLocaleString("zh-TW", { hour12: false }),
             content: editor.value,
           });
-          localStorage.setItem("lab_logs_v3", JSON.stringify(logs));
+          localStorage.setItem("lab_logs_final", JSON.stringify(logs));
           editor.value = "";
-          alert("Saved to Archive");
+          alert("Saved");
         } else if (type === "clear") {
-          if (confirm("Clear Draft?")) editor.value = "";
+          if (confirm("Clear?")) editor.value = "";
         } else if (type === "time") {
           insertAtCursor(timeStr);
         } else if (type === "line") {
