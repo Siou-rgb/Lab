@@ -6,143 +6,180 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Lab - UX Research</title>
+    <title>LabX - Research Tool</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script>
-      /* 1. DESIGN TOKENS (管理中心) */
       tailwind.config = {
         theme: {
           extend: {
             colors: {
-              brand: {
-                bg: "#0D0D0D",
-                surface: "#1A1A1A",
-                accent: "#BBF7D0",
-              },
-            },
-            spacing: {
-              "safe-bottom": "env(safe-area-inset-bottom)",
+              labBg: "#0D0D0D",
+              labAccent: "#BBF7D0",
+              labRed: "#FF6B6B",
             },
           },
         },
       };
     </script>
-
     <style>
-      /* 2. GLOBAL OVERRIDES */
-      #editor::-webkit-scrollbar {
+      body {
+        background-color: #0d0d0d;
+        color: #e5e5e5;
+      }
+      .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
-      .active-press:active {
-        transform: scale(0.98);
-        opacity: 0.8;
+      /* 確保鍵盤彈出時，內容區縮放但不吃掉底部 */
+      main {
+        flex: 1;
+        overflow-y: auto;
       }
     </style>
   </head>
-
-  <body
-    class="bg-brand-bg text-gray-200 h-screen flex flex-col overflow-hidden"
-  >
+  <body class="h-screen flex flex-col overflow-hidden">
     <header
-      class="flex justify-between items-center px-4 py-3 border-b border-white/5 flex-none"
+      class="flex justify-between items-center px-4 py-3 border-b border-white/5 flex-none bg-labBg"
     >
-      <h1
-        class="text-[10px] font-black tracking-widest text-brand-accent uppercase"
-      >
-        Lab Phase 01
+      <h1 class="text-xs font-black tracking-widest text-labAccent uppercase">
+        LabX.
       </h1>
-      <div
-        id="status"
-        class="text-[9px] text-gray-500 font-mono tracking-tighter"
+      <button
+        onclick="toggleView()"
+        class="text-[10px] text-gray-500 hover:text-white uppercase tracking-tighter"
       >
-        IDLE
-      </div>
+        <span id="view-label">Past</span>
+      </button>
     </header>
 
-    <main class="flex-1 relative">
-      <textarea
-        id="editor"
-        class="w-full h-full bg-transparent p-5 text-[16px] leading-relaxed outline-none resize-none placeholder:text-gray-800"
-        placeholder="記錄觀察..."
-      ></textarea>
+    <main id="main-content" class="no-scrollbar">
+      <section id="editor-view" class="h-full flex flex-col">
+        <textarea
+          id="editor"
+          class="w-full h-full bg-transparent p-5 text-[15px] leading-relaxed outline-none resize-none placeholder:text-gray-800"
+          placeholder="Record..."
+        ></textarea>
+      </section>
+
+      <section id="history-view" class="hidden p-5">
+        <h2 class="text-xs text-gray-600 mb-4 uppercase tracking-widest">
+          History Log
+        </h2>
+        <div id="log-list" class="space-y-4 text-xs font-mono"></div>
+      </section>
     </main>
 
     <footer
-      class="p-3 bg-brand-surface/30 border-t border-white/5 flex gap-2 flex-none pb-safe-bottom"
+      class="p-2 bg-black/40 border-t border-white/5 flex items-center justify-around gap-2 flex-none"
     >
-      <button onclick="handleAction('time')" class="btn-primary flex-1">
-        Time
+      <button
+        onclick="handleAction('time')"
+        class="text-[11px] py-2 px-3 text-gray-400 active:text-labAccent"
+      >
+        time
       </button>
-      <button onclick="handleAction('line')" class="btn-primary flex-1">
-        Line
+      <button
+        onclick="handleAction('line')"
+        class="text-[11px] py-2 px-3 text-gray-400 active:text-labAccent"
+      >
+        line
+      </button>
+      <button
+        onclick="handleAction('save')"
+        class="text-[11px] py-2 px-4 bg-white/5 rounded-full text-labAccent"
+      >
+        Save Log
       </button>
       <button
         onclick="handleAction('clear')"
-        class="btn-secondary px-4 text-red-900/60"
+        class="text-[11px] py-2 px-3 text-labRed/60"
       >
-        Clear
+        clear
       </button>
     </footer>
 
     <script>
       const editor = document.getElementById("editor");
-      const statusIcon = document.getElementById("status");
+      const editorView = document.getElementById("editor-view");
+      const historyView = document.getElementById("history-view");
+      const viewLabel = document.getElementById("view-label");
+      const logList = document.getElementById("log-list");
 
-      // 初始化：讀取緩存
-      editor.value = localStorage.getItem("lab_v1") || "";
+      // 初始化資料：改為陣列結構
+      let logs = JSON.parse(localStorage.getItem("lab_logs") || "[]");
 
-      // 核心邏輯：自動存檔
-      const saveContent = () => {
-        localStorage.setItem("lab_v1", editor.value);
-        statusIcon.innerText = "SAVED";
-        statusIcon.classList.add("text-brand-accent");
-        setTimeout(() => {
-          statusIcon.innerText = "SYNCED";
-          statusIcon.classList.remove("text-brand-accent");
-        }, 800);
-      };
+      // 切換視圖 (Past / Editor)
+      function toggleView() {
+        if (editorView.classList.contains("hidden")) {
+          editorView.classList.remove("hidden");
+          historyView.classList.add("hidden");
+          viewLabel.innerText = "Past";
+        } else {
+          renderLogs();
+          editorView.classList.add("hidden");
+          historyView.classList.remove("hidden");
+          viewLabel.innerText = "Back";
+        }
+      }
 
-      // 統一處理按鈕動作 (這就是你要求的延伸性：要加新功能只需在此擴充 case)
+      // 渲染歷史紀錄
+      function renderLogs() {
+        logList.innerHTML =
+          logs.length === 0
+            ? '<div class="text-gray-800">No logs found.</div>'
+            : "";
+        logs
+          .slice()
+          .reverse()
+          .forEach((log, index) => {
+            const item = document.createElement("div");
+            item.className = "pb-4 border-b border-white/5";
+            item.innerHTML = `
+                    <div class="text-[9px] text-labAccent mb-1 opacity-50">${log.date}</div>
+                    <div class="whitespace-pre-wrap leading-relaxed">${log.content}</div>
+                `;
+            logList.appendChild(item);
+          });
+      }
+
+      // 統一動作處理
       function handleAction(type) {
-        const start = editor.selectionStart;
-        let insertStr = "";
+        const now = new Date();
+        const timeStr = `[${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}] `;
 
         switch (type) {
           case "time":
-            const now = new Date();
-            insertStr = `\n[${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}] `;
+            editor.setRangeText(
+              timeStr,
+              editor.selectionStart,
+              editor.selectionEnd,
+              "end",
+            );
             break;
           case "line":
-            insertStr = "\n---\n";
+            editor.setRangeText(
+              "\n---\n",
+              editor.selectionStart,
+              editor.selectionEnd,
+              "end",
+            );
+            break;
+          case "save":
+            if (!editor.value.trim()) return;
+            const newLog = {
+              date: now.toLocaleString(),
+              content: editor.value,
+            };
+            logs.push(newLog);
+            localStorage.setItem("lab_logs", JSON.stringify(logs));
+            editor.value = "";
+            alert("Log Saved!");
             break;
           case "clear":
-            if (confirm("Clear Lab?")) {
-              editor.value = "";
-              saveContent();
-              return;
-            }
+            if (confirm("Clear current draft?")) editor.value = "";
             break;
         }
-
-        if (insertStr) {
-          editor.setRangeText(insertStr, start, editor.selectionEnd, "end");
-          editor.focus();
-          saveContent();
-        }
+        editor.focus();
       }
-
-      editor.addEventListener("input", saveContent);
     </script>
-
-    <style shadow>
-      /* Utility Classes for cleaner HTML */
-      .btn-primary {
-        @apply py-3 bg-white/5 border border-white/5 rounded-xl text-[11px] font-bold uppercase tracking-wider active-press;
-      }
-      .btn-secondary {
-        @apply py-3 bg-transparent border border-white/5 rounded-xl text-[11px] font-bold uppercase tracking-wider active-press;
-      }
-    </style>
   </body>
 </html>
