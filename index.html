@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <title>LabX - Research Tool</title>
+    <title>LabX - Stable Build</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -17,167 +17,171 @@
               labAccent: "#BBF7D0",
               labRed: "#FF6B6B",
             },
+            height: {
+              screen: "100dvh", // 使用動態視窗高度
+            },
           },
         },
       };
     </script>
     <style>
-      body {
-        background-color: #0d0d0d;
-        color: #e5e5e5;
+      /* 防止手機端自動放大輸入框 */
+      input,
+      textarea {
+        font-size: 16px !important;
       }
+
+      /* 隱藏捲軸 */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
-      /* 確保鍵盤彈出時，內容區縮放但不吃掉底部 */
-      main {
-        flex: 1;
-        overflow-y: auto;
+
+      /* 確保內容不被底部按鈕遮住 */
+      .content-area {
+        padding-bottom: 80px;
       }
     </style>
   </head>
-  <body class="h-screen flex flex-col overflow-hidden">
+  <body class="bg-labBg text-gray-200 h-screen flex flex-col overflow-hidden">
     <header
-      class="flex justify-between items-center px-4 py-3 border-b border-white/5 flex-none bg-labBg"
+      class="flex justify-between items-center px-4 py-3 border-b border-white/5 flex-none z-20 bg-labBg"
     >
       <h1 class="text-xs font-black tracking-widest text-labAccent uppercase">
         LabX.
       </h1>
       <button
         onclick="toggleView()"
-        class="text-[10px] text-gray-500 hover:text-white uppercase tracking-tighter"
+        class="text-[10px] text-gray-500 uppercase tracking-tighter"
+        id="view-btn"
       >
-        <span id="view-label">Past</span>
+        Past
       </button>
     </header>
 
-    <main id="main-content" class="no-scrollbar">
-      <section id="editor-view" class="h-full flex flex-col">
+    <main class="flex-1 overflow-y-auto no-scrollbar relative content-area">
+      <div id="editor-view" class="h-full">
         <textarea
           id="editor"
-          class="w-full h-full bg-transparent p-5 text-[15px] leading-relaxed outline-none resize-none placeholder:text-gray-800"
+          class="w-full h-full bg-transparent p-5 leading-relaxed outline-none resize-none placeholder:text-gray-800"
           placeholder="Record..."
         ></textarea>
-      </section>
+      </div>
 
-      <section id="history-view" class="hidden p-5">
-        <h2 class="text-xs text-gray-600 mb-4 uppercase tracking-widest">
-          History Log
+      <div id="history-view" class="hidden p-5">
+        <h2
+          class="text-[10px] text-gray-600 mb-6 uppercase tracking-widest font-bold"
+        >
+          History Archive
         </h2>
-        <div id="log-list" class="space-y-4 text-xs font-mono"></div>
-      </section>
+        <div id="log-list" class="space-y-8"></div>
+      </div>
     </main>
 
     <footer
-      class="p-2 bg-black/40 border-t border-white/5 flex items-center justify-around gap-2 flex-none"
+      class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-30"
     >
-      <button
-        onclick="handleAction('time')"
-        class="text-[11px] py-2 px-3 text-gray-400 active:text-labAccent"
+      <div
+        class="max-w-md mx-auto flex items-center justify-between gap-2 bg-white/5 backdrop-blur-md p-1 rounded-2xl border border-white/10"
       >
-        time
-      </button>
-      <button
-        onclick="handleAction('line')"
-        class="text-[11px] py-2 px-3 text-gray-400 active:text-labAccent"
-      >
-        line
-      </button>
-      <button
-        onclick="handleAction('save')"
-        class="text-[11px] py-2 px-4 bg-white/5 rounded-full text-labAccent"
-      >
-        Save Log
-      </button>
-      <button
-        onclick="handleAction('clear')"
-        class="text-[11px] py-2 px-3 text-labRed/60"
-      >
-        clear
-      </button>
+        <div class="flex">
+          <button
+            onclick="handleAction('time')"
+            class="px-3 py-2 text-[11px] text-gray-400 active:text-labAccent transition-colors"
+          >
+            time
+          </button>
+          <button
+            onclick="handleAction('line')"
+            class="px-3 py-2 text-[11px] text-gray-400 active:text-labAccent transition-colors"
+          >
+            line
+          </button>
+        </div>
+
+        <button
+          onclick="handleAction('save')"
+          class="bg-labAccent text-black text-[11px] font-bold px-5 py-2 rounded-xl active:scale-95 transition-transform"
+        >
+          Save Log
+        </button>
+
+        <button
+          onclick="handleAction('clear')"
+          class="px-3 py-2 text-[11px] text-labRed/50 active:text-labRed"
+        >
+          clear
+        </button>
+      </div>
+      <div class="h-[env(safe-area-inset-bottom)]"></div>
     </footer>
 
     <script>
       const editor = document.getElementById("editor");
       const editorView = document.getElementById("editor-view");
       const historyView = document.getElementById("history-view");
-      const viewLabel = document.getElementById("view-label");
+      const viewBtn = document.getElementById("view-btn");
       const logList = document.getElementById("log-list");
 
-      // 初始化資料：改為陣列結構
-      let logs = JSON.parse(localStorage.getItem("lab_logs") || "[]");
+      let logs = JSON.parse(localStorage.getItem("lab_logs_v2") || "[]");
 
-      // 切換視圖 (Past / Editor)
       function toggleView() {
-        if (editorView.classList.contains("hidden")) {
+        const isHistory = editorView.classList.contains("hidden");
+        if (isHistory) {
           editorView.classList.remove("hidden");
           historyView.classList.add("hidden");
-          viewLabel.innerText = "Past";
+          viewBtn.innerText = "Past";
         } else {
           renderLogs();
           editorView.classList.add("hidden");
           historyView.classList.remove("hidden");
-          viewLabel.innerText = "Back";
+          viewBtn.innerText = "Back";
         }
       }
 
-      // 渲染歷史紀錄
       function renderLogs() {
         logList.innerHTML =
           logs.length === 0
-            ? '<div class="text-gray-800">No logs found.</div>'
+            ? '<div class="text-gray-800 text-xs">Empty archive.</div>'
             : "";
         logs
           .slice()
           .reverse()
-          .forEach((log, index) => {
-            const item = document.createElement("div");
-            item.className = "pb-4 border-b border-white/5";
-            item.innerHTML = `
-                    <div class="text-[9px] text-labAccent mb-1 opacity-50">${log.date}</div>
-                    <div class="whitespace-pre-wrap leading-relaxed">${log.content}</div>
+          .forEach((log, i) => {
+            const div = document.createElement("div");
+            div.className = "group border-l-2 border-white/5 pl-4 py-1";
+            div.innerHTML = `
+                    <div class="text-[9px] text-labAccent/40 font-mono mb-2">${log.date}</div>
+                    <div class="text-sm text-gray-300 leading-relaxed">${log.content.replace(/\n/g, "<br>")}</div>
                 `;
-            logList.appendChild(item);
+            logList.appendChild(div);
           });
       }
 
-      // 統一動作處理
       function handleAction(type) {
         const now = new Date();
         const timeStr = `[${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}] `;
 
-        switch (type) {
-          case "time":
-            editor.setRangeText(
-              timeStr,
-              editor.selectionStart,
-              editor.selectionEnd,
-              "end",
-            );
-            break;
-          case "line":
-            editor.setRangeText(
-              "\n---\n",
-              editor.selectionStart,
-              editor.selectionEnd,
-              "end",
-            );
-            break;
-          case "save":
-            if (!editor.value.trim()) return;
-            const newLog = {
-              date: now.toLocaleString(),
-              content: editor.value,
-            };
-            logs.push(newLog);
-            localStorage.setItem("lab_logs", JSON.stringify(logs));
-            editor.value = "";
-            alert("Log Saved!");
-            break;
-          case "clear":
-            if (confirm("Clear current draft?")) editor.value = "";
-            break;
+        if (type === "save") {
+          if (!editor.value.trim()) return;
+          logs.push({ date: now.toLocaleString(), content: editor.value });
+          localStorage.setItem("lab_logs_v2", JSON.stringify(logs));
+          editor.value = "";
+          alert("Saved to Archive");
+        } else if (type === "clear") {
+          if (confirm("Clear Draft?")) editor.value = "";
+        } else if (type === "time") {
+          insertAtCursor(timeStr);
+        } else if (type === "line") {
+          insertAtCursor("\n---\n");
         }
+      }
+
+      function insertAtCursor(text) {
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.value =
+          editor.value.substring(0, start) + text + editor.value.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + text.length;
         editor.focus();
       }
     </script>
