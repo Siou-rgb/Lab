@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <title>LabX - Stable Build</title>
+    <title>LabX - Top Toolbar Build</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -17,53 +17,82 @@
               labAccent: "#BBF7D0",
               labRed: "#FF6B6B",
             },
-            height: {
-              screen: "100dvh", // 使用動態視窗高度
-            },
           },
         },
       };
     </script>
     <style>
-      /* 防止手機端自動放大輸入框 */
-      input,
+      /* 確保輸入時不會被縮放 */
       textarea {
         font-size: 16px !important;
       }
-
-      /* 隱藏捲軸 */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
 
-      /* 確保內容不被底部按鈕遮住 */
-      .content-area {
-        padding-bottom: 80px;
+      /* 讓內容區自動填滿剩餘高度 */
+      .viewport-height {
+        height: calc(100vh - 100px);
       }
     </style>
   </head>
-  <body class="bg-labBg text-gray-200 h-screen flex flex-col overflow-hidden">
-    <header
-      class="flex justify-between items-center px-4 py-3 border-b border-white/5 flex-none z-20 bg-labBg"
-    >
-      <h1 class="text-xs font-black tracking-widest text-labAccent uppercase">
-        LabX.
-      </h1>
-      <button
-        onclick="toggleView()"
-        class="text-[10px] text-gray-500 uppercase tracking-tighter"
-        id="view-btn"
+  <body class="bg-labBg text-gray-200 overflow-hidden flex flex-col h-screen">
+    <header class="flex-none bg-labBg z-30">
+      <div
+        class="flex justify-between items-center px-4 py-3 border-b border-white/5"
       >
-        Past
-      </button>
+        <h1 class="text-xs font-black tracking-widest text-labAccent uppercase">
+          LabX.
+        </h1>
+        <button
+          onclick="toggleView()"
+          class="text-[10px] text-gray-500 uppercase font-bold"
+          id="view-btn"
+        >
+          Past
+        </button>
+      </div>
+
+      <div
+        class="flex items-center justify-between px-2 py-2 bg-white/5 border-b border-white/5 gap-1"
+      >
+        <div class="flex">
+          <button
+            onclick="handleAction('time')"
+            class="px-3 py-2 text-[11px] text-gray-400 active:text-labAccent font-mono"
+          >
+            time
+          </button>
+          <button
+            onclick="handleAction('line')"
+            class="px-3 py-2 text-[11px] text-gray-400 active:text-labAccent font-mono"
+          >
+            line
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            onclick="handleAction('save')"
+            class="bg-labAccent text-black text-[10px] font-black px-4 py-2 rounded-md active:opacity-70"
+          >
+            SAVE LOG
+          </button>
+          <button
+            onclick="handleAction('clear')"
+            class="px-3 py-2 text-[10px] text-labRed/50 uppercase font-bold"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto no-scrollbar relative content-area">
+    <main class="flex-1 overflow-y-auto no-scrollbar relative">
       <div id="editor-view" class="h-full">
         <textarea
           id="editor"
           class="w-full h-full bg-transparent p-5 leading-relaxed outline-none resize-none placeholder:text-gray-800"
-          placeholder="Record..."
+          placeholder="Start recording..."
         ></textarea>
       </div>
 
@@ -73,47 +102,9 @@
         >
           History Archive
         </h2>
-        <div id="log-list" class="space-y-8"></div>
+        <div id="log-list" class="space-y-6"></div>
       </div>
     </main>
-
-    <footer
-      class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-30"
-    >
-      <div
-        class="max-w-md mx-auto flex items-center justify-between gap-2 bg-white/5 backdrop-blur-md p-1 rounded-2xl border border-white/10"
-      >
-        <div class="flex">
-          <button
-            onclick="handleAction('time')"
-            class="px-3 py-2 text-[11px] text-gray-400 active:text-labAccent transition-colors"
-          >
-            time
-          </button>
-          <button
-            onclick="handleAction('line')"
-            class="px-3 py-2 text-[11px] text-gray-400 active:text-labAccent transition-colors"
-          >
-            line
-          </button>
-        </div>
-
-        <button
-          onclick="handleAction('save')"
-          class="bg-labAccent text-black text-[11px] font-bold px-5 py-2 rounded-xl active:scale-95 transition-transform"
-        >
-          Save Log
-        </button>
-
-        <button
-          onclick="handleAction('clear')"
-          class="px-3 py-2 text-[11px] text-labRed/50 active:text-labRed"
-        >
-          clear
-        </button>
-      </div>
-      <div class="h-[env(safe-area-inset-bottom)]"></div>
-    </footer>
 
     <script>
       const editor = document.getElementById("editor");
@@ -122,7 +113,8 @@
       const viewBtn = document.getElementById("view-btn");
       const logList = document.getElementById("log-list");
 
-      let logs = JSON.parse(localStorage.getItem("lab_logs_v2") || "[]");
+      // 使用不同的 Key 以免資料衝突
+      let logs = JSON.parse(localStorage.getItem("lab_logs_v3") || "[]");
 
       function toggleView() {
         const isHistory = editorView.classList.contains("hidden");
@@ -141,17 +133,17 @@
       function renderLogs() {
         logList.innerHTML =
           logs.length === 0
-            ? '<div class="text-gray-800 text-xs">Empty archive.</div>'
+            ? '<div class="text-gray-800 text-xs text-center mt-10">Archive is empty.</div>'
             : "";
         logs
           .slice()
           .reverse()
-          .forEach((log, i) => {
+          .forEach((log) => {
             const div = document.createElement("div");
-            div.className = "group border-l-2 border-white/5 pl-4 py-1";
+            div.className = "border-l border-white/10 pl-4 py-1";
             div.innerHTML = `
-                    <div class="text-[9px] text-labAccent/40 font-mono mb-2">${log.date}</div>
-                    <div class="text-sm text-gray-300 leading-relaxed">${log.content.replace(/\n/g, "<br>")}</div>
+                    <div class="text-[9px] text-labAccent/40 font-mono mb-2 uppercase">${log.date}</div>
+                    <div class="text-sm text-gray-400 leading-relaxed">${log.content.replace(/\n/g, "<br>")}</div>
                 `;
             logList.appendChild(div);
           });
@@ -163,8 +155,11 @@
 
         if (type === "save") {
           if (!editor.value.trim()) return;
-          logs.push({ date: now.toLocaleString(), content: editor.value });
-          localStorage.setItem("lab_logs_v2", JSON.stringify(logs));
+          logs.push({
+            date: now.toLocaleString("zh-TW", { hour12: false }),
+            content: editor.value,
+          });
+          localStorage.setItem("lab_logs_v3", JSON.stringify(logs));
           editor.value = "";
           alert("Saved to Archive");
         } else if (type === "clear") {
